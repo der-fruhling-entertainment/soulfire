@@ -12,32 +12,83 @@
 </head>
 
 <body>
+    <p id="status">Enter your HI3 UID and Username below to get your role!</p>
 
-<p id="status">Enter your HI3 UID and Username below to get your role!</p>
+    <a href="https://discord.com/oauth2/authorize?client_id=1203211791807545455&response_type=code&redirect_uri=https%3A%2F%2Fus-west1-steam-talent-413205.cloudfunctions.net%2Fhi3-validate-linked-roles&scope=role_connections.write" id="auth-button">
+        Click here to login to your Discord account.
+    </a>
 
-<a style="display: none" id="auth-button" href="https://discord.com/oauth2/authorize?client_id=1203211791807545455&response_type=code&redirect_uri=https%3A%2F%2Fus-west1-steam-talent-413205.cloudfunctions.net%2Fhi3-validate-linked-roles&scope=role_connections.write">
-    Click here to login to your Discord account. (We don't store anything.)
-</a>
+    <div>
+        <p>Privacy: Your token will not be stored on our servers. Due to Discord limitations, this webpage will send it's assigned token to the server to complete the request. Your token is removed automatically in the following cases:</p>
 
-<form method="post">
-    <label><input type="text" name="uid" id="uid" placeholder="Honkai Impact 3rd UID"></label><br>
-    <label><input type="text" name="username" id="username" placeholder="In-game Username"></label><br>
-    <button type="submit" disabled id="submit">Submit</button>
-</form>
+        <ul>
+            <li>The request is completed successfully.</li>
+            <li>An unhandled error interacting with Discord occurs. This is to better allow reassigning a token in the hopes that the issue will be fixed.</li>
+        </ul>
 
-<script>
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-    }
+        <p>Your token is NOT automatically removed from your browser in the following cases:</p>
+        <ul>
+            <li>You input an invalid username or UID.</li>
+        </ul>
 
-    if(!getCookie("dstk")) {
-        document.getElementById('auth-button').removeAttribute('style');
-    } else {
-        document.getElementById('submit').removeAttribute('disabled');
-    }
-</script>
+        <p>If you wish to remove this token, <a id="clear-cookies-link" href="https://duckduckgo.com/?q=how+to+clear+cookies">clear this sites cookies</a>.</p>
+    </div>
+
+    <script>
+        function getBrowserType() {
+            const test = regexp => {
+                return regexp.test(navigator.userAgent);
+            };
+
+            console.log(navigator.userAgent);
+
+            if (test(/opr\//i) || !!window.opr) {
+                return 'Opera';
+            } else if (test(/edg/i)) {
+                return 'Microsoft Edge';
+            } else if (test(/chrome|chromium|crios/i)) {
+                return 'Google Chrome';
+            } else if (test(/firefox|fxios/i)) {
+                return 'Mozilla Firefox';
+            } else if (test(/safari/i)) {
+                return 'Apple Safari';
+            } else if (test(/trident/i)) {
+                return 'Microsoft Internet Explorer';
+            } else if (test(/ucbrowser/i)) {
+                return 'UC Browser';
+            } else if (test(/samsungbrowser/i)) {
+                return 'Samsung Browser';
+            } else {
+                return null;
+            }
+        }
+
+        const type = getBrowserType();
+
+        if(type) {
+            document.getElementById('clear-cookies-link').href += '+' + encodeURIComponent(type.toLowerCase().replaceAll(' ', '+'))
+        }
+    </script>
+
+    <form method="post">
+        <label><input type="text" name="uid" id="uid" placeholder="Honkai Impact 3rd UID"></label><br>
+        <label><input type="text" name="username" id="username" placeholder="In-game Username"></label><br>
+        <button type="submit" disabled id="submit">Submit</button>
+    </form>
+
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        if(!getCookie("dstk")) {
+            document.getElementById('auth-button').textContent = 'Logged in. Click here to log in again.';
+        } else {
+            document.getElementById('submit').removeAttribute('disabled');
+        }
+    </script>
 
 </body>
 </html>
