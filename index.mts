@@ -127,7 +127,7 @@ export async function invokeLinking(req: Request, res: Response) {
 
         const region = getHi3Region(Number.parseInt(uid, 10));
         
-        const isAsia = region === 'ASIA';
+        const isAsia = region === 'SEA';
         const isNA = region === 'NA';
         const isEU = region === 'EU';
         
@@ -196,7 +196,7 @@ export async function invokeLinking(req: Request, res: Response) {
 // slightly tweaked for visual stuff
 function getHi3Region(uid: number) {
     if (uid > 10_000_000 && uid < 100_000_000) {
-        return 'ASIA'
+        return 'SEA'
     } else if (uid > 100_000_000 && uid < 200_000_000) {
         return 'NA'
     } else if (uid > 200_000_000 && uid < 300_000_000) {
