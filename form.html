@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Insert HI3 UID</title>
+
+    <script>
+        // discord requires a certain user agent
+        Object.defineProperty(navigator, 'userAgent', {
+            get: function () { return 'DiscordBot (https://github.com/der_fruhling/, 0.1.0)'; }
+        });
+    </script>
+</head>
+
+<body>
+
+<p id="status">Enter your HI3 UID and Username below to get your role!</p>
+
+<a style="display: none" id="auth-button" href="https://discord.com/oauth2/authorize?client_id=1203211791807545455&response_type=code&redirect_uri=https%3A%2F%2Fus-west1-steam-talent-413205.cloudfunctions.net%2Fhi3-validate-linked-roles&scope=role_connections.write">
+    Click here to login to your Discord account. (We don't store anything.)
+</a>
+
+<form method="post">
+    <label><input type="text" name="uid" id="uid" placeholder="Honkai Impact 3rd UID"></label><br>
+    <label><input type="text" name="username" id="username" placeholder="In-game Username"></label><br>
+    <button type="submit" disabled id="submit">Submit</button>
+</form>
+
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    if(!getCookie("dstk")) {
+        document.getElementById('auth-button').removeAttribute('style');
+    } else {
+        document.getElementById('submit').removeAttribute('disabled');
+    }
+</script>
+
+</body>
+</html>

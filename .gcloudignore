@@ -1,0 +1,5 @@
+node_modules
+parts.json
+.idea
+.fleet
+.git
