@@ -1,0 +1,51 @@
+body {
+    font-family: Geist, sans-serif;
+    margin: 0;
+}
+
+#privacy-notice {
+    padding: 15px;
+    margin: 15px;
+    max-width: 600px;
+    background-color: white;
+}
+
+input, button {
+    margin-top: 5px;
+}
+
+#backdrop {
+    position: fixed;
+    height: max-content;
+    top: 50%;
+    left: 50%;
+    width: 101vw;
+    z-index: -1;
+    transform: translate(-50%, -50%);
+}
+
+.centered-box-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+}
+
+.soulfire-name {
+    padding: 15px 15px 15px 15px;
+    background-color: black;
+    color: white;
+    font-size: 24pt;
+}
+
+.centered-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.centered-box-main-contents {
+    background-color: white;
+    padding: 0 15px 15px 15px;
+}

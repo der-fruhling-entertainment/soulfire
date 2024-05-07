@@ -1,0 +1,32 @@
+name: "Honkai Impact 3rd (Global)"
+suffix: HI3_GLB
+uid:
+    max_length: 10
+username:
+    optional: true
+    max_length: 16
+keys:
+    is_asia:
+        type: BoolEq
+        name: "SEA"
+        description: "Your profile must be on the SEA server."
+        conditions:
+            - uid:
+                  start: 10000000
+                  end: 100000000
+    is_na:
+        type: BoolEq
+        name: "NA"
+        description: "Your profile must be on the NA server."
+        conditions:
+            - uid:
+                  start: 100000000
+                  end: 200000000
+    is_eu:
+        type: BoolEq
+        name: "EU"
+        description: "Your profile must be on the EU server."
+        conditions:
+            - uid:
+                  start: 200000000
+                  end: 300000000

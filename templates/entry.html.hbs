@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Soulfire for {{name}}</title>
+
+    <script src="/assets/base.js"></script>
+
+    <link rel="stylesheet" href="/assets/base.css">
+</head>
+
+<body>
+    <img alt="" src="/assets/soulfire-bg.svg" id="backdrop">
+
+    <div class="centered-box-container">
+        <div id="contents" class="centered-box"{{#unless hide_privacy_notice}} style="display: none"{{/unless}}>
+            <div class="soulfire-name">Soulfire</div>
+            <div class="centered-box-main-contents">
+                <p id="status">Enter your {{name}} UID and username below to get your role!</p>
+                <a href="https://discord.com/oauth2/authorize?client_id=1203211791807545455&response_type=code&redirect_uri=https%3A%2F%2F{{domain}}%2Fgames%2F{{id}}%2Fdiscord-auth-flow&scope=role_connections.write" id="auth-button">Click here to login to your Discord account.</a>
+                <script>
+                    let uidValid = false;
+                    let usernameValid = false;
+
+                    function onAnyChange() {
+                        if(loggedIn && uidValid && usernameValid) {
+                            document.getElementById('submit').removeAttribute('disabled');
+                        } else if(!document.getElementById('submit').hasAttribute('disabled')) {
+                            document.getElementById('submit').setAttribute('disabled', '');
+                        }
+                    }
+
+                    function onUIDChange() {
+                        const value = document.getElementById('uid').value;
+                        uidValid = value.matchAll(/^[0-9]{1,{{uid_max_length}}}$/g);
+                        onAnyChange();
+                    }
+
+                    function onUsernameChange() {
+                        const value = document.getElementById('username').value;
+                        {{#if username.is_optional}}
+                        usernameValid = value.length < {{username.max_length}};
+                        {{/if}}
+                        {{#unless username.is_optional}}
+                        usernameValid = value.length < {{username.max_length}} && value.length > 0;
+                        {{/unless}}
+                        onAnyChange();
+                    }
+                </script>
+                <form method="post">
+                    <label><input type="text" name="uid" id="uid" placeholder="{{name}} UID" onkeyup="onUIDChange()"></label><br>
+                    {{#if username.is_optional}}
+                    <label><input type="text" name="username" id="username" placeholder="In-game Username (optional)" onkeyup="onUsernameChange()"></label><br>
+                    {{/if}}
+                    {{#unless username.is_optional}}
+                    <label><input type="text" name="username" id="username" placeholder="In-game Username" onkeyup="onUsernameChange()"></label><br>
+                    {{/unless}}
+                    <button type="submit" disabled="" id="submit">Submit</button>
+                </form>
+                <script>
+                    function getCookie(name) {
+                        const value = `; ${document.cookie}`;
+                        const parts = value.split(`; ${name}=`);
+                        if (parts.length === 2) return parts.pop().split(';').shift();
+                    }
+
+                    const loggedIn = !!getCookie("dstk");
+
+                    if(loggedIn) {
+                        document.getElementById('auth-button').textContent = 'Logged in. Click here to log in again.';
+                    }
+                </script>
+            </div>
+        </div>
+        {{#unless hide_privacy_notice}}
+        <div id="privacy-notice">
+            <b>Your privacy &amp; other info</b>
+
+            <p>You must authenticate with Discord to use this service. The token given to Soulfire will be stored in your browser only and will only be capable of setting your linked role information, nothing else.</p>
+
+            <p>Due to Discord limitations, this webpage must send it's assigned token to the server to complete the request. Your token is never stored on the server and will be removed from your browser automatically in the following cases:</p>
+
+            <ul>
+                <li>The request is completed successfully.</li>
+                <li>An strange error interacting with Discord occurs. The token will be removed in the hopes that getting a new token will resolve the issue.</li>
+            </ul>
+
+            <p>If you wish to remove this token manually, <a id="clear-cookies-link" href="https://duckduckgo.com/?q=how+to+clear+site+cookies" target="_blank">clear this sites cookies</a>.</p>
+
+            <p>If you are having issues, please send an email to <a href="mailto:oml47hc14@mozmail.com">oml47hc14@mozmail.com</a> to reach me. While I encourage including your game UID in your email, you are not required to add any information relating to your Discord account.</p>
+
+            <p>Also, we're open source! <a href="https://github.com/der-fruhling-entertainment/soulfire">View on GitHub.</a> Or, <a href="https://der-fruhling-entertainment.github.io">check out what's up.</a></p>
+
+            <script>
+                function onCloseMessage() {
+                    document.getElementById('privacy-notice').remove();
+                    document.getElementById('contents').removeAttribute("style");
+                }
+
+                if(type) {
+                    document.getElementById('clear-cookies-link').href += '+' + encodeURIComponent(type.toLowerCase()).replaceAll('%20', '+')
+                }
+            </script>
+
+            <a href="javascript:onCloseMessage()">
+                Continue
+            </a>
+        </div>
+        {{/unless}}}
+    </div>
+</body>
+</html>
