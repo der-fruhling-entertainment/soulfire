@@ -5,6 +5,7 @@ use base64::Engine;
 use hmac::Hmac;
 use jwt::{SignWithKey, VerifyWithKey};
 use lazy_static::lazy_static;
+use rustrict::CensorStr;
 use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 use sha2::Sha256;
@@ -80,7 +81,7 @@ impl Game {
     pub fn make_role_connection_info<'a>(&'a self, uid: u64, username: &'a str) -> PutRoleConnectionInfo<'a> {
         PutRoleConnectionInfo {
             platform_name: &self.name,
-            platform_username: if username.is_empty() { uid.to_string() } else { format!("{} ({})", username, uid) },
+            platform_username: if username.is_empty() { uid.to_string() } else { format!("{} ({})", username.censor(), uid) },
             metadata: HashMap::from_iter(self.keys.iter()
                 .map(|(k, v)| (k.as_str(), match &v.ty {
                     KeyType::BoolEq { conditions } => if conditions.iter().all(|c| match c {
