@@ -51,15 +51,21 @@ impl GameInfo {
 
 #[rocket::launch]
 fn launch() -> _ {
-    rocket::build()
+    #[allow(unused_mut)]
+    let mut rk = rocket::build()
         .attach(Template::fairing())
         .manage(BotInfo {
             domain: env::var("DOMAIN").unwrap_or_else(|_| "soulfire.derfrühling.net".to_string()),
             client: reqwest::Client::builder()
                 .build().unwrap()
         })
-        .mount("/assets", FileServer::from("assets/"))
-        .mount("/", routes![get_game, get_game_link_page, set_game_link_status, get_link_success, link_discord])
+        .mount("/", routes![get_game, get_game_link_page, set_game_link_status, get_link_success, link_discord, add_bot, get_all_games]);
+
+    #[cfg(feature = "assets-hosting")] {
+        rk = rk.mount("/assets", FileServer::from("assets/"));
+    }
+
+    rk
 }
 
 #[derive(rocket::Responder)]
@@ -110,7 +116,7 @@ async fn set_game_link_status(game: &str, data: Form<GameLinkStatus>, jar: &Cook
     match GAMES.get(game) {
         Some((v, info)) => {
             let cookie = jar.get("dstk").ok_or_else(|| Error::BadRequest("No token acquired."))?;
-            let token = cookie.value();
+            let token = decrypt_key(cookie.value()).map_err(|_| Error::BadRequest("Invalid token"))?;
             
             let res = bot.client
                 .put(format!("https://discord.com/api/v10/users/@me/applications/{}/role-connection", info.application_id))
@@ -129,6 +135,7 @@ async fn set_game_link_status(game: &str, data: Form<GameLinkStatus>, jar: &Cook
                 return Err(Error::InternalServerError("Failed to set your role connection.\n-> That's an internal server error. Oops!"));
             }
             
+            jar.remove("dstk");
             Ok(Redirect::to(format!("/success")))
         },
         None => Err(Error::NotFound("The requested game was not found.")),
@@ -155,7 +162,10 @@ async fn link_discord(game: &str, code: &str, jar: &CookieJar<'_>, bot: &State<B
                 return Err(Error::BadRequest("Bad request."));
             }
             
-            let contents = format!("grant_type=authorization_code&code={code}&redirect_uri=https://maximum-honest-cat.ngrok-free.app/games/{game}/discord-auth-flow");
+            let contents = format!(
+                "grant_type=authorization_code&code={code}&redirect_uri={}",
+                urlencoding::encode(&format!("https://{}/games/{game}/discord-auth-flow", bot.domain))
+            );
             
             let res = bot.client.post("https://discord.com/api/v10/oauth2/token")
                 .body(contents)
@@ -163,30 +173,56 @@ async fn link_discord(game: &str, code: &str, jar: &CookieJar<'_>, bot: &State<B
                 .header("User-Agent", "DiscordBot (https://github.com/der-fruhling)")
                 .basic_auth(info.client_id, Some(&info.client_secret))
                 .send().await.map_err(|e| {
-                    log::error!("error interacting with Discord for an auth token: {e}");
+                    log::error!("error interacting with Discord for an auth token: {e:?}");
                     Error::InternalServerError("Internal server error. Oops!")
                 })?;
-            
+
             if !res.status().is_success() {
                 return Err(Error::DiscordPassed((Status::from_code(res.status().into()).unwrap(), format!("Discord-passed internal error. {}", res.status()))));
             }
-            
+
             let token_data = res.text().await
                 .unwrap_or_else(|_| panic!("successful auth interaction with Discord; no body????"));
             let token_data: TokenReturn = serde_json::from_str(&token_data)
                 .map_err(|_| Error::InternalServerError("Internal server error. Oops!"))?;
-            
+
             if token_data.scope != "role_connections.write" {
                 return Err(Error::BadRequest("Invalid operation"));
             }
-            
-            jar.add(Cookie::build(("dstk", token_data.access_token.to_string()))
+
+            jar.add(Cookie::build(("dstk", generate_encrypted_key(token_data.access_token)))
                 .secure(true)
                 .expires(cookie::Expiration::DateTime(time::OffsetDateTime::now_utc() + time::Duration::seconds((token_data.expires_in - 100) as i64)))
                 .same_site(cookie::SameSite::Strict));
-            
+
             Ok(Redirect::to(format!("/games/{game}/link?hpn")))
         },
         None => Err(Error::NotFound("The requested game was not found.")),
     }
+}
+
+#[get("/games/<game>/add-bot")]
+async fn add_bot(game: &str) -> Result<Template, Error> {
+    match GAMES.get(game) {
+        Some((v, info)) => {
+            Ok(Template::render("add-bot", context! {
+                name: &v.name,
+                auth: format!("https://discord.com/oauth2/authorize?client_id={}&permissions=0&scope=bot", info.client_id)
+            }))
+        },
+        None => Err(Error::NotFound("The requested game was not found.")),
+    }
+}
+
+#[get("/all-games")]
+async fn get_all_games() -> Result<Template, Error> {
+    Ok(Template::render("all-games", context! {
+        games: GAMES.iter()
+            .map(|(id, (game, _))| context! {
+                name: &game.name,
+                id: id,
+                main_page: game.main_page.as_ref()
+            })
+            .collect::<Vec<_>>()
+    }))
 }

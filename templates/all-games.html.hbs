@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Soulfire</title>
+
+    <script src="/assets/base.js"></script>
+
+    <link rel="stylesheet" href="/assets/base.css">
+</head>
+
+<body>
+    <img alt="" src="/assets/soulfire-bg.svg" id="backdrop">
+
+    <div class="centered-box-container">
+        <div id="contents" class="centered-box">
+            <div class="soulfire-name">Soulfire</div>
+            <div class="centered-box-main-contents" style="padding-top: 15px; max-width: 600px; max-height: 300px; overflow: scroll">
+                <b>All Games</b>
+                {{#each games as | game |}}
+                <li style="margin-left: 15px; padding-top: 15px">
+                    <b>{{name}}</b> —
+                    <a href="/games/{{id}}/add-bot">Add bot</a>
+                    <a href="/games/{{id}}/link">Link</a>
+                    {{#if main_page}}
+                    <a href="{{main_page}}">Game page</a>
+                    {{/if}}
+                </li>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
