@@ -10,35 +10,64 @@ lazy_static! {
     static ref GAMES: HashMap<String, (Game, GameInfo)> = load_games();
 }
 
+#[cfg(not(feature = "testing"))]
 fn load_games() -> HashMap<String, (Game, GameInfo)> {
     let mut map = HashMap::default();
-    
+
     for game in fs::read_dir("games").unwrap().filter_map(Result::ok) {
         if game.file_type().unwrap().is_file() {
             let contents = fs::read_to_string(game.path()).unwrap();
             let yaml: Game = serde_yml::from_str(&contents).unwrap_or_else(|e| panic!("failed to parse game {:?}: {e}", game.path()));
-            
+
             let path = game.path().with_extension("");
             let name = path.file_name().unwrap().to_string_lossy();
             let info = GameInfo::from_suffix(&yaml.suffix);
             map.insert(name.as_ref().to_owned(), (yaml, info));
         }
     }
-    
+
+    map
+}
+
+#[cfg(feature = "testing")]
+fn load_games() -> HashMap<String, (Game, GameInfo)> {
+    let mut map = HashMap::default();
+
+    map.insert("test".to_string(), (Game {
+        name: "Hello World 2: Electric Boogalo".to_string(),
+        main_page: Some("https://example.com".to_string()),
+        suffix: "IRRELEVANT".to_string(),
+        uid: UidConfig {
+            max_length: 16
+        },
+        username: UsernameConfig {
+            optional: false,
+            max_length: 16
+        },
+        keys: BTreeMap::default()
+    }, GameInfo::default()));
+
     map
 }
 
 struct BotInfo {
     domain: String,
+    #[cfg(not(feature = "testing"))]
     client: reqwest::Client
 }
 
+#[cfg(not(feature = "testing"))]
 struct GameInfo {
     application_id: u64,
     client_id: u64,
     client_secret: String,
 }
 
+#[cfg(feature = "testing")]
+#[derive(Default)]
+struct GameInfo;
+
+#[cfg(not(feature = "testing"))]
 impl GameInfo {
     pub fn from_suffix(suffix: &str) -> Self {
         Self {
@@ -56,6 +85,7 @@ fn launch() -> _ {
         .attach(Template::fairing())
         .manage(BotInfo {
             domain: env::var("DOMAIN").unwrap_or_else(|_| "soulfire.derfrühling.net".to_string()),
+            #[cfg(not(feature = "testing"))]
             client: reqwest::Client::builder()
                 .build().unwrap()
         })
@@ -112,12 +142,13 @@ struct GameLinkStatus {
 }
 
 #[post("/games/<game>/link", data = "<data>")]
+#[cfg(not(feature = "testing"))]
 async fn set_game_link_status(game: &str, data: Form<GameLinkStatus>, jar: &CookieJar<'_>, bot: &State<BotInfo>) -> Result<Redirect, Error> {
     match GAMES.get(game) {
         Some((v, info)) => {
             let cookie = jar.get("dstk").ok_or_else(|| Error::BadRequest("No token acquired."))?;
             let token = decrypt_key(cookie.value()).map_err(|_| Error::BadRequest("Invalid token"))?;
-            
+
             let res = bot.client
                 .put(format!("https://discord.com/api/v10/users/@me/applications/{}/role-connection", info.application_id))
                 .body(serde_json::to_string(&v.make_role_connection_info(data.uid, &data.username))
@@ -129,17 +160,23 @@ async fn set_game_link_status(game: &str, data: Form<GameLinkStatus>, jar: &Cook
                     log::error!("error interacting with Discord to change role connection info: {e}");
                     Error::InternalServerError("Internal server error. Oops!")
                 })?;
-            
+
             if !res.status().is_success() {
                 log::error!("Failed to set role connection: {} {:?}", res.status(), res.text().await);
                 return Err(Error::InternalServerError("Failed to set your role connection.\n-> That's an internal server error. Oops!"));
             }
-            
+
             jar.remove("dstk");
             Ok(Redirect::to(format!("/success")))
         },
         None => Err(Error::NotFound("The requested game was not found.")),
     }
+}
+
+#[post("/games/<game>/link", data = "<data>")]
+#[cfg(feature = "testing")]
+async fn set_game_link_status(game: &str, data: Form<GameLinkStatus>, jar: &CookieJar<'_>, bot: &State<BotInfo>) -> Result<Redirect, Error> {
+    Err(Error::BadRequest("not implemented in testing versions"))
 }
 
 #[get("/success")]
@@ -155,18 +192,19 @@ struct TokenReturn<'a> {
 }
 
 #[get("/games/<game>/discord-auth-flow?<code>")]
+#[cfg(not(feature = "testing"))]
 async fn link_discord(game: &str, code: &str, jar: &CookieJar<'_>, bot: &State<BotInfo>) -> Result<Redirect, Error> {
     match GAMES.get(game) {
         Some((v, info)) => {
             if code.chars().any(|c| !c.is_alphanumeric()) {
                 return Err(Error::BadRequest("Bad request."));
             }
-            
+
             let contents = format!(
                 "grant_type=authorization_code&code={code}&redirect_uri={}",
                 urlencoding::encode(&format!("https://{}/games/{game}/discord-auth-flow", bot.domain))
             );
-            
+
             let res = bot.client.post("https://discord.com/api/v10/oauth2/token")
                 .body(contents)
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -201,13 +239,25 @@ async fn link_discord(game: &str, code: &str, jar: &CookieJar<'_>, bot: &State<B
     }
 }
 
+#[get("/games/<game>/discord-auth-flow?<code>")]
+#[cfg(feature = "testing")]
+async fn link_discord(game: &str, code: &str) -> Result<Redirect, Error> {
+    Err(Error::BadRequest("not implemented in testing versions"))
+}
+
 #[get("/games/<game>/add-bot")]
 async fn add_bot(game: &str) -> Result<Template, Error> {
     match GAMES.get(game) {
         Some((v, info)) => {
             Ok(Template::render("add-bot", context! {
                 name: &v.name,
-                auth: format!("https://discord.com/oauth2/authorize?client_id={}&permissions=0&scope=bot", info.client_id)
+                auth: (|| {
+                    #[cfg(not(feature = "testing"))] {
+                        return format!("https://discord.com/oauth2/authorize?client_id={}&permissions=0&scope=bot", info.client_id)
+                    }
+
+                    "https://example.com".to_string()
+                })()
             }))
         },
         None => Err(Error::NotFound("The requested game was not found.")),
