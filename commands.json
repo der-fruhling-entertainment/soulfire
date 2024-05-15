@@ -1,0 +1,13 @@
+[
+  {
+    "name": "help",
+    "type": 1,
+    "description": "Get help about using Soulfire"
+  },
+  {
+    "name": "post-help",
+    "type": 1,
+    "description": "Post a publicly visible help message in the current channel",
+    "default_member_permissions": "16"
+  }
+]
