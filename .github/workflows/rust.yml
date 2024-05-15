@@ -20,3 +20,8 @@ jobs:
       run: cargo build
     - name: Run tests
       run: cargo test
+      env:
+        # these are test values
+        # not indicitive of real values used elsewhere
+        TOKEN_JWT_KEY: b12e2a2b263cc0dacdd21842542966f1d32e3f9124f6bc48c8abb12fe689d097de39bd6bd91a0c7f8dd208cef51ad420d2acc4836dea5920135c1f1935517972
+        TOKEN_CIPHER_KEY: 6174a5e0ce18c7eda19a169f706e522de2f61fa25454adf0bb4f04a8fc241ab4
